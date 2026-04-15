@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice #{{ myorders_data[0] }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .invoice-box {
+            padding: 30px;
+            border: 1px solid #eee;
+            margin: auto;
+        }
+        .table > :not(caption) > * > * {
+            padding: 8px 12px;
+        }
+        .text-end { text-align: right; }
+        .header-title {
+            font-size: 28px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<div class="invoice-box">
+    <div class="row mb-4">
+        <div class="col-6">
+            <h2 class="header-title">INVOICE</h2>
+            <p>
+                <strong>Invoice ID:</strong> {{ myorders_data[1] }}<br>
+                <strong>Date:</strong> {{ myorders_data[9] }} 
+            </p>
+        </div>
+        <div class="col-6 text-end">
+            <h4>Your Company Name</h4>
+            <p>
+                123 Business St.<br>
+                City, Country<br>
+                Email: support@example.com
+            </p>
+        </div>
+    </div>
+
+    <hr>
+
+    <h5>Bill To:</h5>
+    {% for order in order_details %}
+    <p>
+        {{ myorders_data[1] }}<br>
+        {{ myorders_data[2] }}<br>
+        {{ order[3] }}
+    </p>
+    {% endfor %}
+    <hr>
+
+    <h5>Order Items</h5>
+    <table class="table table-bordered">
+        <thead>
+        <tr>
+            <th>#</th>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th class="text-end">Total</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in order_details %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ item[3] }}</td>
+            <td>{{ item[5] }}</td>
+            <td>{{ item[4] }}</td>
+            <td class="text-end">{{ item[5] * item[4] }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <hr>
+    Delivery:{{myorders_data[6]}}
+    <div class="row">
+        <div class="col-6"></div>
+        <div class="col-6">
+            <table class="table">
+                <tr>
+                    
+
+                    <th>Subtotal:</th>
+                    <td class="text-end">
+                        {{
+                            myorders_data[7]
+                        }}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Tax (5%):</th>
+                    <td class="text-end">
+                        {{
+                            myorders_data[5]
+                        }}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Total:</th>
+                    <td class="text-end fw-bold">
+                        {{
+                            myorders_data[4]
+                        }}
+                    </td>
+                </tr> 
+            </table>
+        </div>
+    </div>
+
+    <hr>
+
+    <p class="text-center">Thank you for your purchase!</p>
+</div>
+</body>
+</html>
