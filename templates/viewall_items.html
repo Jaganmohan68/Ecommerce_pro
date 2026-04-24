@@ -124,9 +124,9 @@
         <h6>Price: ₹{{i[4]}}</h6>
         <h6>Category:{{i[6]}}</h6>
         <div class="button">
-          <a href="{{url_for('viewitem',itemid=i[0])}}" class="btn btn-warning">View</a>
-          <a href="{{url_for('updateitem',itemid=i[0])}}" class="btn btn-success">Update</a>
-          <a href="{{url_for('deleteitem',itemid=i[0])}}" class="btn btn-danger">Delete</a>
+          <a href="{{url_for("view_item", itemid=i[0])}}" class="btn btn-warning">View</a>
+          <a href="#" class="btn btn-success">Update</a>
+          <a href="{{url_for("deleteitem", itemid=i[0])}}" class="btn btn-danger">Delete</a>
         </div>
       </div>
     </div>

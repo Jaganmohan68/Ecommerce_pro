@@ -74,6 +74,23 @@
     button:hover {
       background: linear-gradient(90deg, #e63946, #ff4d4d);
     }
+
+    .resend-link {
+      margin-top: 15px;
+    }
+
+    .resend-link a {
+      color: #ffd60a;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: 0.3s;
+    }
+
+    .resend-link a:hover {
+      color: #ffea00;
+      text-decoration: underline;
+    }
   </style>
 </head>
 {% with messages = get_flashed_messages() %}
@@ -93,6 +110,11 @@
       <input type="text" class="form-control mb-3" name="otp" placeholder="Enter OTP" maxlength="6" required>
       <button type="submit">Verify OTP</button>
     </form>
+
+    <div class="resend-link">
+      <p style="margin: 0 0 10px 0;">Didn't receive the OTP?</p>
+      <a href="{{ url_for('adminotpresent', serverdata=serverdata) }}">Resend OTP</a>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>

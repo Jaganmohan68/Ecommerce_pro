@@ -192,15 +192,15 @@
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Sign Up</a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="{{ url_for('admincreate') }}">Admin Signup</a></li>
-            <li><a class="dropdown-item" href="#">User Signup</a></li>
+            <li><a class="dropdown-item" href="{{url_for("usersignup")}}">User Signup</a></li>
           </ul>
         </li>
 
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Login</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#">Admin Login</a></li>
-            <li><a class="dropdown-item" href="#">User Login</a></li>
+            <li><a class="dropdown-item" href="{{url_for("adminlogin")}}">Admin Login</a></li>
+            <li><a class="dropdown-item" href="{{url_for("userlogin")}}">User Login</a></li>
           </ul>
         </li>
         

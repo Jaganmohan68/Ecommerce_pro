@@ -78,16 +78,16 @@
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
           <li class="nav-item">
-            <a class="nav-link active" href="{{url_for('additem')}}">Add Item</a>
+            <a class="nav-link active" href="{{url_for("additem")}}">Add Item</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link active" href="{{url_for('viewallitems')}}">View All Items</a>
+            <a class="nav-link active" href="{{url_for("viewall_items")}}">View All Items</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link active" href="{{url_for('adminupdate')}}">Update Profile</a>
+            <a class="nav-link active" href="#">Update Profile</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link active" href="{{url_for('adminlogout')}}">Logout</a>
+            <a class="nav-link active" href="#">Logout</a>
           </li>
         </ul>
         {{session.get('admin')}}
