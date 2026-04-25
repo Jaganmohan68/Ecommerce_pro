@@ -297,9 +297,31 @@ def deleteitem(itemid):
             cursor.execute("select adminid from admindata where admin_email=%s",[session.get("admin")])
             admin_id=cursor.fetchone()[0]
             if admin_id:
-                cursor.execute("delete from items where added_by=%s and uuid_to_bin(%s)=itemid", [admin_id, itemid])
-                mydb.commit()
-                cursor.close()
+              
+                cursor.execute("select filename from items where added_by=%s and uuid_to_bin(%s)=itemid", [admin_id, itemid])
+                result=cursor.fetchone()
+                
+                if result:
+                    filename=result[0]
+                    cursor.execute("delete from items where added_by=%s and uuid_to_bin(%s)=itemid", [admin_id, itemid])
+                    mydb.commit()
+                    
+                 
+                    if filename:
+                        file_path=os.path.join(app.config["UPLOAD_FOLDER"], filename)
+                        try:
+                            if os.path.exists(file_path):
+                                os.remove(file_path)
+                        except Exception as e:
+                            print(f"Error deleting file: {e}")
+                    
+                    cursor.close()
+                    flash("Item Deleted Successfully")
+                    return redirect(url_for("viewall_items"))
+                else:
+                    cursor.close()
+                    flash("Item not found")
+                    return redirect(url_for("viewall_items"))
             else:
                 flash("could not verify admin")
                 return redirect(url_for("viewall_items"))
@@ -307,12 +329,94 @@ def deleteitem(itemid):
             print(e)
             flash("could not delete item")
             return redirect(url_for("viewall_items"))
-        else:
-            flash("Item Deleted Successfully")
-            return redirect (url_for("viewall_items"))
     else:
         flash("Please login to view all items")
         return redirect(url_for("adminlogin"))
+
+@app.route('/updateitem/<itemid>',methods=['GET','POST'])
+def updateitem(itemid):
+    if not session.get('admin'):
+        flash('PLs login to updateitem')
+        return redirect(url_for('adminlogin'))
+    try:
+        cursor=mydb.cursor(buffered=True)
+        cursor.execute('select adminid from admindata where admin_email=%s',[session.get('admin')])
+        admin_id=cursor.fetchone()
+        # print("hey")
+        if not admin_id:
+            flash('Admin not verified')
+            return redirect(url_for('viewall_items'))
+        admin_data=admin_id[0]
+        cursor.execute('select bin_to_uuid(itemid),itemname,item_description,item_about,item_price,item_quantity,item_category,filename from items where added_by=%s and itemid=uuid_to_bin(%s)',[admin_data,itemid])
+        storeditem_data=cursor.fetchone()
+    
+        if not storeditem_data:
+            flash('Item details not found')
+            return redirect(url_for('viewall_items'))
+        filename=storeditem_data[7]
+        old_filename=storeditem_data[7]
+        cursor.close()
+        
+    except Exception as e:
+        app.logger.exception(f'Could not fetch item data : {e}')
+        flash('Could not find item')
+        return redirect(url_for('viewall_items'))
+    else:
+        if request.method=='POST':
+            print(request.form)
+            updateditem_name=request.form['title']
+            updateditem_description=request.form['Description']
+            updateditem_about=request.form['About_item']
+            updateditem_cost=request.form['price']
+            updateditem_quantity=request.form['quantity']
+            updateditem_category=request.form['category']
+            updateditem_filedata=request.files['file']
+            print(updateditem_filedata)
+            updateditem_filename=updateditem_filedata.filename
+            new_file_path=None
+            if updateditem_filedata and updateditem_filename:
+                if not allowed_file(updateditem_filename):
+                    flash('File type not allowed: png,jpg,jpeg,webp,gif')
+                    return redirect(url_for('updateitem',itemid=itemid))
+                orig_secure=secure_filename(updateditem_filename)
+                ext=os.path.splitext(orig_secure)[1]
+                filename=genotp()+ext
+                new_file_path=os.path.join(app.config["UPLOAD_FOLDER"],filename)
+                try:
+                    updateditem_filedata.save(new_file_path)
+                except Exception as e:
+                    app.logger.exception(f'File save failed:{e}')
+                    flash('could not save file')
+                    return redirect(url_for('updateitem',itemid=itemid))
+            #DB update
+            try:
+                cursor=mydb.cursor(buffered=True)
+                cursor.execute('update items set itemname=%s,item_description=%s,item_about=%s,item_price=%s,item_quantity=%s,item_category=%s,filename=%s where added_by=%s and itemid=uuid_to_bin(%s)',[updateditem_name,updateditem_description,updateditem_about,updateditem_cost,updateditem_quantity,updateditem_category,filename,admin_data,itemid])
+                mydb.commit()
+                cursor.close()
+            except Exception as e:
+                mydb.rollback()
+                app.logger.exception(f'DB update failed:{e}')
+                # remove newly uploaded file if db fails
+                if new_file_path and os.path.exists(new_file_path):
+                    os.remove(new_file_path)
+                flash('Could not update item details')
+                return redirect(url_for('updateitem',itemid=itemid))
+            #After Db success --> delete old img
+            else:
+                if new_file_path and old_filename:
+                    try:
+                        old_path=os.path.join(app.config["UPLOAD_FOLDER"],old_filename)
+                        if os.path.exists(old_path):
+                            os.remove(old_path)
+                    except Exception as e:
+                        app.logger.warning(f'Old file delete failed :{e}')
+                flash('Item Updated successfully')
+                return redirect(url_for('updateitem',itemid=itemid))
+        return render_template('updateitem.html',item_data=storeditem_data)
+    
+
+
 
 
 
