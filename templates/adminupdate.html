@@ -109,21 +109,21 @@
 
     <div class="mb-3">
       <label class="form-label" for="adminname">Admin Name</label>
-      <input id="adminname" name="adminname" type="text" class="form-control" value="{{ admin_details[1] }}" required>
+      <input id="adminname" name="adminname" type="text" class="form-control" value="{{ admin_data[1] }}" required>
     </div>
 
     <div class="mb-3">
       <label class="form-label" for="address">Address</label>
-      <input id="address" name="address" type="text" class="form-control" value="{{ admin_details[2] }}" required>
+      <input id="address" name="address" type="text" class="form-control" value="{{ admin_data[3] }}" required>
     </div>
 
     <div class="mb-3">
       <label class="form-label" for="ph_no">Phone No</label>
-      <input id="ph_no" name="ph_no" type="tel" class="form-control" value="{{ admin_details[3] }}" required>
+      <input id="ph_no" name="ph_no" type="tel" class="form-control" value="{{ admin_data[2] }}" required>
     </div>
 
     <!-- Current image preview -->
-    <img id="preview" src="/static/uploads/{{ admin_details[4] }}" alt="Profile image" class="profile-img">
+    <img id="preview" src="/static/uploads/{{ admin_data[4] }}" alt="Profile image" class="profile-img">
 
     <div class="mb-3">
       <label class="form-label" for="formFile">Upload New Image (optional)</label>

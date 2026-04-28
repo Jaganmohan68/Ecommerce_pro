@@ -84,10 +84,10 @@
             <a class="nav-link active" href="{{url_for("viewall_items")}}">View All Items</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link active" href="#">Update Profile</a>
+            <a class="nav-link active" href="{{url_for("adminprofileupdate")}}">Update Profile</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link active" href="#">Logout</a>
+            <a class="nav-link active" href="{{url_for("adminlogout")}}">Logout</a>
           </li>
         </ul>
         {{session.get('admin')}}

@@ -415,9 +415,88 @@ def updateitem(itemid):
                 return redirect(url_for('updateitem',itemid=itemid))
         return render_template('updateitem.html',item_data=storeditem_data)
     
+@app.route('/adminprofileupdate',methods=['GET','POST'])
+def adminprofileupdate():
+    if not session.get('admin'):
+        flash("pls login to view dashboard")
+        return redirect(url_for('adminlogin'))
+    try:
+        cursor=mydb.cursor(buffered=True)
+        cursor.execute('select adminid,admin_username,admin_phone,admin_address,admin_profileimg from admindata where admin_email=%s',[session.get('admin')])
+        admin_data=cursor.fetchone()
+        if not admin_data:
+            flash('Admin not verified')
+            return redirect(url_for('admindashboard'))
+        cursor.close()
+    except Exception as e:
+        app.logger.exception(f'Could not fetch admin data : {e}')
+        flash('Could not find admin details')
+        return redirect(url_for('admindashboard'))
+    else:
+        if request.method=='POST':
+            updatedadmin_username=request.form['adminname']
+            updatedadmin_address=request.form['address']
+            updatedadmin_phone=request.form['ph_no'] #"None"
+            updatedadmin_profileimg=request.files['file']
+            updatedadmin_filename=updatedadmin_profileimg.filename
+            new_file_path=None
+            filename=admin_data[4]
+            old_filename=admin_data[4]
+            if eval(updatedadmin_phone)==None: #  updatedadmin_phone=="None"
+                updated_phone="0000000000"
+            else:
+                updated_phone=updatedadmin_phone
+            
+                
+            if updatedadmin_filename:
+                if not allowed_file(updatedadmin_filename):
+                    flash('File type not allowed: png,jpg,jpeg,webp,gif')
+                    return redirect(url_for('adminprofileupdate'))
+                orig_secure=secure_filename(updatedadmin_filename) # it removes unwanted data
+                ext=os.path.splitext(orig_secure)[1] # .jpg
+                filename=genotp()+ext
+                new_file_path=os.path.join(app.config["UPLOAD_FOLDER"],filename)
+                try:
+                    updatedadmin_profileimg.save(new_file_path)
+                except Exception as e:
+                    app.logger.exception(f'File save failed:{e}')
+                    flash('could not save file')
+                    return redirect(url_for('adminprofileupdate'))
 
+            try:
+                cursor=mydb.cursor(buffered=True)
+                cursor.execute('update admindata set admin_username=%s,admin_address=%s,admin_profileimg=%s,admin_phone=%s where admin_email=%s',[updatedadmin_username,updatedadmin_address,filename,updated_phone,session.get('admin')])
+                mydb.commit()
+                cursor.close()
+            except Exception as e:
+                mydb.rollback()
+                app.logger.exception(f'DB update failed:{e}')
+                # remove newly uploaded file if db fails
+                if new_file_path and os.path.exists(new_file_path):
+                    os.remove(new_file_path)
+                flash('Could not update admin details')
+                return redirect(url_for('adminprofileupdate'))
+            #After Db success --> delete old img
+            else:
+                if new_file_path and old_filename:
+                    try:
+                        old_path=os.path.join(app.config["UPLOAD_FOLDER"],old_filename)
+                        if os.path.exists(old_path):
+                            os.remove(old_path)
+                    except Exception as e:
+                        app.logger.warning(f'Old file delete failed :{e}')
+                flash('admin Updated successfully')
+                return redirect(url_for('adminprofileupdate'))
+    return render_template('adminupdate.html',admin_data=admin_data)
 
-
+@app.route("/adminlogout")
+def adminlogout():
+    if not session.get("admin"):
+        flash("Please login to view dashboard")
+        return redirect(url_for("adminlogin"))
+    else:
+        session.pop("admin")
+        return redirect(url_for("adminlogin")) 
 
 
 
@@ -451,7 +530,7 @@ def usersignup():
         except Exception as e:
             print(e)
             flash("something went wrong")
-            return redirect(url_for('usersignup'))
+            return redirect(url_for('usercreate'))
         else:
             if email_count==0:
                 subject="OTP For Ecomdb verification"
@@ -477,7 +556,7 @@ def userotpverify(serverdata):
         except Exception as e:
             print(e)
             flash('Time out error')
-            return redirect(url_for('usersignup'))
+            return redirect(url_for('usercreate'))
         else:
             if str(user_data['user_otp'])==str(userotp):
                 print("hey jagan")
@@ -490,10 +569,10 @@ def userotpverify(serverdata):
                 except Exception as e:
                     print(e)
                     flash('Could not store details')
-                    return redirect(url_for('usersignup'))
+                    return redirect(url_for('usercreat'))
                 else:
                     flash('User registered successfully')
-                    return redirect(url_for('usersignup'))
+                    return redirect(url_for('userlogin'))
             else:
                 flash('Wrong OTP')
                 return redirect(url_for('userotpverify',serverdata=serverdata))
@@ -540,7 +619,7 @@ def userlogin():
                         if stored_password:
                             if bcrypt.check_password_hash(stored_password[0],login_password):
                                 session["user"]=login_email
-                                return redirect(url_for("userdashboard")) # need to write
+                                return redirect(url_for("index")) # need to write
                             else:
                                 flash("Wrong Password")
                                 return redirect(url_for("userlogin"))
