@@ -165,29 +165,31 @@
         <li class="nav-item"><a class="nav-link" href="#">Home</a></li>
         <li class="nav-item"><a class="nav-link" href="#">Contact Us</a></li>
 
-        
-        <li class="nav-item"><a class="nav-link" href="#">View Cart</a></li>
+        {% if session.get("user")%}
+        <li class="nav-item"><a class="nav-link" href="{{url_for('viewcart')}}">View Cart</a></li>
         <li class="nav-item"><a class="nav-link" href="#">My Orders</a></li>
-        
+        {%endif%}
 
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Category</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#">Home Appliances</a></li>
-            <li><a class="dropdown-item" href="#">Electronics</a></li>
-            <li><a class="dropdown-item" href="#">Fashion</a></li>
-            <li><a class="dropdown-item" href="#">Grocery</a></li>
-            <li><a class="dropdown-item" href="#">Sports</a></li>
-            <li><a class="dropdown-item" href="#">Toys</a></li>
+            <li><a class="dropdown-item" href="{{url_for("category",ctype="Home Appliances")}}">Home Appliances</a></li>
+            <li><a class="dropdown-item" href="{{url_for("category",ctype="Electronics")}}">Electronics</a></li>
+            <li><a class="dropdown-item" href="{{url_for("category",ctype="Fashion")}}">Fashion</a></li>
+            <li><a class="dropdown-item" href="{{url_for("category",ctype="Grocery")}}">Grocery</a></li>
+            <li><a class="dropdown-item" href="{{url_for("category",ctype="Sports")}}">Sports</a></li>
+            <li><a class="dropdown-item" href="{{url_for("category",ctype="Toys")}}">Toys</a></li>
           </ul>
         </li>
 
-       
+       {% if session.get("user")%}
         <li class="nav-item"><a class="nav-link" href="#">Logout</a></li>
-      
+      {%endif%}
       
 
-       
+        
+
+      {% if session.get("user")%} 
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Sign Up</a>
           <ul class="dropdown-menu">
@@ -203,7 +205,7 @@
             <li><a class="dropdown-item" href="{{url_for("userlogin")}}">User Login</a></li>
           </ul>
         </li>
-        
+        {%endif%}
       </ul>
 
       <!-- SEARCH BOX -->
@@ -228,6 +230,7 @@
       {% endfor %}
     {% endif %}
   {% endwith %}
+
       <h1>Welcome to BUYROUTE</h1>
       <h3>Shop Smart. Live Better.</h3>
     </div>
@@ -238,20 +241,21 @@
   <section class="py-5">   
     <div class="container">    
       <div class="row g-4">
-      
+      {% if allitems_data %}
+      {% for i in allitems_data %}
       
         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
           <div class="card">
             <a href="#">
-              <img src="#" class="card-img-top" alt="#">
+              <img src="/static/uploads/{{i[7]}}" class="card-img-top" alt="#">
             </a>
             <div class="card-body">
               <h6></h6>
-              <h5 class="card-title"></h5>
-              <p><span></span></p>
-              <p><span>Stock:</span></p>
+              <h5 class="card-title">{{i[7][:12]}}</h5>
+              <p><span>{{i[4]}}/-</span></p>
+              <p><span>Stock:{{i[5]}}</span></p>
               <form method="post" action="#">
-                <input type="hidden" name="itemid" value="#">
+                <input type="hidden" name="itemid" value="{{i[0]}}">
                 <select name="qyt" class="form-select mb-2">
                   {% for q in range(1,11) %}
                     <option value="{{q}}">{{q}}</option>
@@ -259,13 +263,15 @@
                 </select>
                 <button class="btn btn-success mb-2">Buy Now</button>
               </form>
-              <a href="#"class="btn btn-warning">Add to Cart</a>
+              <a href="{{url_for("addcart",itemid=i[0])}}"class="btn btn-warning">Add to Cart</a>
             </div>
           </div>
         </div>
-        
+       {% endfor%}
+       {%else %} 
       
       <p>No products </p>
+      {% endif %}
       
       </div>
      

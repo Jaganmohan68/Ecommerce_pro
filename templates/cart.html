@@ -160,9 +160,9 @@
       {% endif %}
     {% endwith %}
 
-    {% if not items_data %}
+    {% if not items_for_display %}
       <div class="empty-state">
-        Your cart is empty. <a href="{{ url_for('home') }}" style="color: #ffe082; text-decoration:underline;">Continue shopping</a>
+        Your cart is empty. <a href="{{ url_for('index') }}" style="color: #ffe082; text-decoration:underline;">Continue shopping</a>
       </div>
     {% else %}
     <div class="cart-card">
@@ -175,35 +175,35 @@
           <div style="text-align:right; font-weight:700; color:#374151;">Subtotal</div>
         </div>
 
-        {% for item in items_data %}
+        {% for item in items_for_display %}
         {# assume item = [id, name, price, quantity, img, category] adjust indexes if needed #}
-        <div class="cart-item" role="listitem" aria-label="Cart item {{ item[1] }}">
+        <div class="cart-item" role="listitem" aria-label="Cart item {{ item['name'] }}">
           <div class="item-img">
             <a href="#">
-            <img src="/static/uploads/{{item[5] }}" alt="{{ item[1] }}"></a>
+            <img src="/static/uploads/{{item["imgname"] }}" alt="{{ item["name"] }}"></a>
           </div>
 
           <div>
-            <div class="item-title">{{ item[1] }}</div>
-            <div class="item-meta">Category: {{ item[4] if item|length > 5 else 'N/A' }} &nbsp; • &nbsp; Price: ₹{{ item[3] }}</div>
+            <div class="item-title">{{ item["name"] }}</div>
+            <div class="item-meta">Category: {{ item["category"] if item|length > 5 else 'N/A' }} &nbsp; • &nbsp; Price: ₹{{ item["price"] }}</div>
           </div>
 
           <div>
             <!-- Update quantity form -->
-            <form method="post" action="{{url_for('updatecart',itemid=item[0])}}" class="qty-box" aria-label="Update quantity for {{ item}}">
-              <input type="number" name="quantity" min="1" value="{{ item[2] }}" required>
+            <form method="post" action="{{url_for("updatecart",itemid=item['id'])}}" class="qty-box" aria-label="Update quantity for {{ item["id"]}}">
+              <input type="number" name="quantity" min="1" value="{{ item["quantity"] }}" required>
               <button type="submit" class="btn btn-outline-secondary small-btn">Update</button>
             </form>
 
             <!-- Remove action on small screens -->
             <div style="margin-top:8px; display:block;" class="remove-mobile">
-              <a href="{{url_for('removecart',itemid=item[0])}}">
+              <a href="{{url_for("removecart",itemid=item['id'])}}">
                 <button type="submit" class="btn btn-danger btn-sm small-btn">Remove</button>
               </a>
             </div>
           </div>
 
-           <div class="price">₹ {{ (item[2] * item[3]) | round(2) }}</div> 
+           <div class="price">₹ {{ (item["price"] * item["quantity"]) | round(2) }}</div> 
         </div>
         {% endfor %}
       </div>
@@ -217,8 +217,8 @@
           <div class="summary-row grand"><div>Grand total</div><div>₹ {{grand_total}}</div></div>
 
           <div class="actions">
-            <a href="{{ url_for('home') }}" class="btn btn-outline-secondary w-100">Continue Shopping</a>
-            <form action="{{url_for('paycart')}}" class="d-inline" style="width:100%;">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary w-100">Continue Shopping</a>
+            <form action="{{url_for("pay_cart")}}" class="d-inline" style="width:100%;">
               <button type="submit" class="btn btn-primary w-100" style="background: linear-gradient(90deg,#ffd54a,#ffb74d); border:none; margin-top:8px;">Checkout</button>
             </form>
           </div>

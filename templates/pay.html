@@ -14,9 +14,9 @@
     <div>
         <h4>Items:</h4>
         <ul>
-            {% for item in items_data %}
+            {% for item in cart_items %}
                 <li>
-                    {{ item[1] }} (x{{ item[2] }}) – ₹{{ item[6] }}
+                   {{item["name"]}} {{ item["quantity"] }} (x{{ item["price"] }}) – ₹{{ item["subtotal"] }}
                 </li>
             {% endfor %}
         </ul>
@@ -28,7 +28,7 @@
 
     <script>
         var options = {
-            "key": "rzp_test_SHy3zlzWZXNg3W",
+            "key": "rzp_test_Sjy5hYBNuv6idu",
             "amount": "{{ order.amount }}",            // amount in paise
             "currency": "INR",
             "name": "BUYROUTE",

@@ -74,12 +74,12 @@
     <section class="container py-5">
         <div class="row g-4">
 
-            {% for i in allitems_data %}
+            {% for i in items_data %}
             <div class="col-lg-3 col-md-4 col-sm-6 col-12">
                 <div class="card">
 
                     <!-- Product Image -->
-                    <a href="{{url_for('descitem',itemid=i[0])}}">
+                    <a href="#">
                         <img src="/static/uploads/{{i[7]}}" alt="Product Image" class="card-img-top">
                     </a>
 
@@ -91,7 +91,7 @@
                         <p class="m-0"><strong>Price:</strong> ₹{{i[4]}}</p>
                         <p class="m-0"><strong>Stock:{{i[5]}}</strong> </p>
                         <p class="m-0"><strong>Category:{{i[6]}}</strong> </p>
-                        <form method="post" action="{{url_for('buy_now')}}">
+                        <form method="post" action="#">
                             <input type="hidden" name="itemid" value="{{i[0]}}">
                             <label class="mt-2"><strong>Select Quantity</strong></label>
                             <select name="qyt" class="form-select quantity">

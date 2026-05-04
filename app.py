@@ -6,6 +6,8 @@ from stoken import endata, dndata
 from flask_bcrypt import Bcrypt
 from mysql.connector import (connection)
 import os
+import razorpay
+client=razorpay.Client(auth=("rzp_test_Sjy5hYBNuv6idu","IHR2o3q89UEP4oZRQnzvxAtW"))
 from werkzeug.utils import secure_filename # it checks weather file name consists of extra "/ or ,
 mydb=connection.MySQLConnection(user="root",host="localhost",password="Admin@68",db="ecomdb")
 
@@ -32,7 +34,19 @@ def home():
 
 @app.route("/index")
 def index():
-    return render_template("index.html")
+    try:
+        cursor=mydb.cursor(buffered=True)
+        cursor.execute("select bin_to_uuid(itemid), itemname, item_description, item_about, item_price, item_quantity, item_category, filename from items ")
+        allitems_data=cursor.fetchall()
+        print(allitems_data)
+        cursor.close()
+    except Exception as e:
+        print(e)
+        flash("could not get all item data...")
+        return redirect(url_for("index"))
+    else:
+        return render_template("index.html",allitems_data=allitems_data)
+
 
 #----- Defining Admin routes.......
 
@@ -223,7 +237,7 @@ def additem():
                 cursor.close()
             except Exception as e:
                 print(e)
-                if filename:
+                if filename:   
                     try:
                         os.remove(save_path)
                     except Exception as e:
@@ -595,57 +609,304 @@ def userotpresent(serverdata):
         flash('OTP has been sent given mail')
         return redirect(url_for('userotpverify',serverdata=endata(user_data)))
 
-@app.route("/userlogin",methods=["GET","POST"])
+@app.route('/userlogin',methods=['GET','POST'])
 def userlogin():
-    if request.method=="POST":
+    if request.method=='POST':
         login_email=request.form["email"]
-        login_password= request.form["password"]
+        login_password=request.form['password']
         try:
             cursor=mydb.cursor(buffered=True)
-            cursor.execute("select count(*) from userdata where user_email=%s",[login_email])
-            email_count=cursor.fetchone() # (1,) (0,)
+            cursor.execute('select count(*) from userdata where user_email=%s',[login_email])
+            email_count=cursor.fetchone() #(1,) or (0,) none
             cursor.close()
         except Exception as e:
             print(e)
-            flash("Could not connect db")
-            return redirect (url_for("userlogin"))
+            flash('Could not connect db')
+            return redirect(url_for('userlogin'))
         else:
             if email_count:
                 if email_count[0]==1:
                     try:
                         cursor=mydb.cursor(buffered=True)
-                        cursor.execute("select password from userdata where user_email=%s",[login_email])
-                        stored_password=cursor.fetchone() # ("sdfghjkjhgf")
+                        cursor.execute('select password from userdata where user_email=%s',[login_email])
+                        stored_password=cursor.fetchone() #('fgjvjfj',)
                         if stored_password:
                             if bcrypt.check_password_hash(stored_password[0],login_password):
-                                session["user"]=login_email
-                                return redirect(url_for("index")) # need to write
+                                print(session)
+                                session['user']=login_email
+                                print(session,'user')
+                                if not session.get(login_email):
+                                    session[login_email]={}
+                                print(session,'user cart session')
+                                return redirect(url_for('index'))
                             else:
-                                flash("Wrong Password")
-                                return redirect(url_for("userlogin"))
+                                flash('Wrong password')
+                                return redirect(url_for('userlogin'))
                         else:
-                            flash("could not verify password")
-                            return redirect(url_for("userlogin"))
+                            flash(' password not found')
+                            return redirect(url_for('userlogin'))
                     except Exception as e:
                         print(e)
-                        flash("could not verify password")
-                        return redirect(url_for("userlogin"))
+                        flash('Could Verify password')
+                        return redirect(url_for('userlogin'))        
                 elif email_count[0]==0:
-                    flash("Email not found")
-                    return redirect(url_for("userlogin"))
+                    flash('Email not found')
+                    return redirect(url_for('userlogin'))
             else:
-                flash("Email Not Found")
-                return redirect(url_for("userlogin"))
-    return render_template("userlogin.html")
+                flash('Email Not registered')
+                return redirect(url_for('userlogin'))
+    return render_template('userlogin.html')
 
-@app.route("/userdashboard")
-def userdashboard():
-    if session.get("user"):
-        return "Login Dashboard"
-    else:
-        flash("Please Login to Access")
-        return redirect(url_for("userlogin"))
+# @app.route("/userdashboard")
+# def userdashboard():
+#     if session.get("user"):
+#         return "Login Dashboard"
+#     else:
+#         flash("Please Login to Access")
+#         return redirect(url_for("userlogin"))
  
+@app.route('/addcart/<itemid>',methods=['GET'])
+def addcart(itemid):
+    if not session.get('user'):
+        flash('pls login to addcart')
+        return redirect(url_for('userlogin'))
+    try:
+        cursor=mydb.cursor(buffered=True)
+        cursor.execute('select bin_to_uuid(itemid),itemname,item_description,item_about,item_price,item_quantity,item_category,filename from items where itemid=uuid_to_bin(%s)',[itemid])
+        item_data=cursor.fetchone()
+        cursor.close()
+    except Exception as e:
+        print(e)
+        flash('Could not get item data')
+        return redirect(url_for('index'))
+    else:
+        print(session)
+        if itemid not in session[session.get('user')]:
+            session[session.get('user')][itemid]=[item_data[1],1,item_data[4],item_data[5],item_data[6],item_data[7]]
+            session.modified=True
+            print(session)
+            flash('item added to cart')
+            return redirect(url_for('index'))
+        else:
+            session[session.get('user')][itemid][1] +=1
+            session.modified=True
+            print(session,'already')
+            flash('item already in  cart')
+            return redirect(url_for('index'))
+@app.route('/viewcart')
+def viewcart():
+    if not session.get('user'):
+        flash('pls login to view cart')
+        return redirect(url_for('userlogin'))
+    try:
+        user=session.get('user')
+        items=session.get(user,{})
+        print(items)
+        items_total=0
+        items_for_display=[]
+        for itemid,data in items.items():
+            name=data[0]
+            price=float(data[2])
+            quantity=int(data[1])
+            category=data[4] if len(data)>3 else None
+            img=data[5] if len(data)>4 else None
+            subtotal=price * quantity
+            items_total +=subtotal
+            items_for_display.append({
+                'id':itemid,
+                'name':name,
+                'price':price,
+                'quantity':quantity,
+                'category':category,
+                'imgname':img
+            })
+        delivery=40
+        tax=round(items_total *0.05,2)
+        grand_total=items_total+delivery+tax
+        return render_template('cart.html',items_for_display=items_for_display,delivery=delivery,tax=tax,grand_total=grand_total,items_total=items_total)
+    except Exception as e:
+        print(e)
+        flash('Could not get items details')
+        return redirect(url_for('index'))
+@app.route('/updatecart/<itemid>',methods=['POST'])
+def updatecart(itemid):
+    if not session.get('user'):
+        flash('pls login to update cart')
+        return redirect(url_for('userlogin'))
+    try:
+        updated_quantity=int(request.form['quantity'])
+        if itemid in session[session.get('user')]:
+            session[session.get('user')][itemid][1]=updated_quantity
+            session.modified=True
+            print(session)
+            flash('item updated to cart')
+            return redirect(url_for('viewcart'))
+        else:
+            flash('item not in  cart')
+            return redirect(url_for('index'))
+    except Exception as e:
+        print(e)
+        flash('Could not update cart item')
+        return redirect(url_for('viewcart'))
+@app.route('/removecart/<itemid>')
+def removecart(itemid):
+    if not session.get('user'):
+        flash('pls login to update cart')
+        return redirect(url_for('userlogin'))
+    try:
+        if itemid in session[session.get('user')]:
+            session[session.get('user')].pop(itemid)
+            session.modified=True
+            print(session)
+            flash('item removed from cart')
+            return redirect(url_for('viewcart'))
+        else:
+            flash('item found in   cart')
+            return redirect(url_for('index'))
+    except Exception as e:
+        print(e)
+        flash('Could not remove cart item')
+        return redirect(url_for('viewcart'))
+
+@app.route("/category/<ctype>")
+def category(ctype):
+    try:
+        cursor=mydb.cursor(buffered=True)
+        cursor.execute("select bin_to_uuid(itemid), itemname, item_description, item_about, item_price, item_quantity, item_category, filename from items where item_category=%s",[ctype])
+        items_data=cursor.fetchall()
+        print(items_data)
+        if not items_data:
+            flash("there is no item available in this category")
+            return redirect(url_for("index"))
+    except Exception as e:
+        app.logger.exception(f"Error fetching item {e}")
+        flash("Could not fetch item") 
+        return redirect(url_for("index"))
+    else:
+        return render_template("dashboard.html",items_data=items_data)
+
+# pay route---
+@app.route("/pay_cart",methods=["GET","POST"])
+def pay_cart():
+    if not session.get("user"):
+        flash("Please Logion to Pay cart")
+        return redirect(url_for("index"))
+    try:
+        # fetching all the cart items
+        cart=session.get(session.get("user"),{})
+        if not cart:
+            flash("Your cart is empty")
+            return redirect(url_for("index"))
+        items_total=0
+        items_data=[]
+        for itemid,data in cart.items():
+            name=data[0]
+            price=float(data[2])
+            quantity=int(data[1])
+            category=data[4] if len(data)>3 else None
+            img=data[5] if len(data)>4 else None
+            subtotal=price * quantity
+            items_total +=subtotal
+            items_data.append({
+                'id':itemid,
+                'name':name,
+                'price':price,
+                'quantity':quantity,
+                'category':category,
+                'imgname':img,
+                "subtotal":subtotal
+            })
+            delivery=40
+            tax=round(items_total*0.05,2)
+            grand_total=int(items_total+delivery+tax)
+            razorpay_amount=grand_total*100 # coverting to paise
+
+            # creating razorpay order
+            order=client.order.create({
+                "amount":razorpay_amount,
+                "currency":"INR",
+                "receipt": f"{session.get('user')}",
+                "payment_capture":"1"
+
+            })
+            print("created an order: ",order)
+            return render_template("pay.html",order=order,cart_items=items_data,items_total=items_total,delivery=delivery,tax=tax,grand_total=grand_total)
+    except Exception as e:
+        print('could not process payment: ',e)
+        flash("payment failed")
+        return redirect(url_for("viewcart"))
+
+@app.route('/success_cart',methods=['POST'])
+def success_cart():
+    if not session.get('user'):
+        flash('pls login')
+        return redirect(url_for('userlogin'))
+    try:
+        payment_id=request.form['razorpay_payment_id']
+        order_id=request.form['razorpay_order_id']
+        signature=request.form['razorpay_signature']
+        amount=float(request.form['grand_total'])
+        #verify payment signature details
+        param_dict={
+            'razorpay_payment_id':payment_id,
+            'razorpay_order_id':order_id,
+            'razorpay_signature':signature
+        }
+        try:
+            client.utility.verify_payment_signature(param_dict)
+        except Exception as e:
+            print(e)
+            flash('Payment verification failed')
+            return redirect(url_for('pay_cart'))
+        cart=session.get(session.get('user'),{})
+        if not cart:
+            flash('Your cart is empty')
+            return redirect(url_for('pay_cart'))
+        items_total=sum(float(v[2]) * int(v[1]) for v in cart.values())
+        delivery=40
+        tax=round(items_total *0.05,2)
+        grand_total=items_total+delivery+tax
+        # print(grand_total,amount,111)
+        if int(amount)==int(grand_total):
+            try:
+                cursor=mydb.cursor(buffered=True)
+                cursor.execute('select userid from userdata where user_email=%s',[session.get('user')])
+                user=cursor.fetchone()[0]
+                print(user,'user')
+                cursor.execute('insert into orders(razorpay_orderid,razorpay_payment,userid,total_amount,delivery,tax,grand_total) values(%s,%s,%s,%s,%s,%s,%s)',[order_id,payment_id,user,items_total,delivery,tax,grand_total])
+                order_table_id=cursor.lastrowid
+                # print(order_table_id,'rowid')
+                insert_item='''insert into order_items(order_items_id,order_id,itemid,item_name, item_price,item_quantity,subtotal,item_category,item_filename) values(uuid_to_bin(uuid()),%s,uuid_to_bin(%s),%s,%s,%s,%s,%s,%s)'''
+                for i,j in cart.items():
+                    itemid=i
+                    item_name=j[0]
+                    item_quantity=int(j[1])
+                    item_price=float(j[2])
+                    category=j[4] if len(i)>3 else None
+                    print(category,'hi')
+                    img=j[5] if len(i)>4 else None
+                    sub_total=item_price*item_quantity
+                    cursor.execute(insert_item,[order_table_id,itemid,item_name,item_price,item_quantity,sub_total,category,img])
+                mydb.commit()
+                cursor.close()
+            except Exception as e:
+                app.logger.exception(f'Error order storage:{e}')
+                flash('Could not store order details')
+                return redirect(url_for('pay_cart'))
+            #------- remove temp cart items
+            session[session.get('user')]={}
+            flash('Payment successfull')
+            return redirect(url_for('pay_cart'))
+        else:
+            # print('Amount Failed')
+            flash('Amount Invalid')
+            return redirect(url_for('pay_cart'))
+    except Exception as e:
+        app.logger.exception(f'Error  verification failed:{e}')
+        flash('Could not order.payment verification failed')
+        return redirect(url_for('pay_cart'))
+
+
 
 app.run(debug=True,use_reloader=True)
 
