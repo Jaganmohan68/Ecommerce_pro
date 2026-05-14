@@ -50,7 +50,7 @@
 <body>
 
 <div class="topbar">
-  <a href="{{ url_for('home') }}"><img src="/static/BUYROUTE.png" class="logo"></a>
+  <a href="{{ url_for('index') }}"><img src="/static/BUYROUTE.png" class="logo"></a>
   <h3 style="color:white;font-weight:700;">Add Review</h3>
   <div></div>
 </div>
@@ -79,7 +79,7 @@
       </div>
 
       <button type="submit" class="btn-submit">Submit Review</button>
-      <a href="{{ url_for('descitem', itemid=itemid) }}" class="btn btn-secondary ms-2">Back</a>
+      <a href="{{ url_for('desc_item', itemid=itemid) }}" class="btn btn-secondary ms-2">Back</a>
 
   </form>
 

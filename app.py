@@ -1,10 +1,13 @@
-from flask import Flask,url_for,redirect,render_template,request,flash,session
+from flask import Flask,url_for,redirect,render_template,request,flash,session,make_response,jsonify
+from io import BytesIO
+from xhtml2pdf import pisa
 from flask_session import Session
 from otp import genotp
 from cmail import sendmail
 from stoken import endata, dndata
 from flask_bcrypt import Bcrypt
 from mysql.connector import (connection)
+import re
 import os
 import razorpay
 client=razorpay.Client(auth=("rzp_test_Sjy5hYBNuv6idu","IHR2o3q89UEP4oZRQnzvxAtW"))
@@ -512,6 +515,15 @@ def adminlogout():
         session.pop("admin")
         return redirect(url_for("adminlogin")) 
 
+@app.route('/userlogout')
+def userlogout():
+    if not session.get('user'):
+        flash("pls login to view dashboard")
+        return redirect(url_for('userlogin'))
+    else:
+        session.pop('user')
+        return redirect(url_for('userlogin'))
+
 
 
 
@@ -521,8 +533,8 @@ def adminlogout():
 
 #-------------- defining user routes.......
 
-@app.route("/usersignup",methods=["GET","POST"])
-def usersignup():
+@app.route("/usercreate",methods=["GET","POST"])
+def usercreate():
     if request.method=="POST":
         user_username=request.form["name"]
         user_useremail=request.form['email']
@@ -554,12 +566,12 @@ def usersignup():
                 return redirect(url_for("userotpverify",serverdata=endata(user_data)))
             elif email_count==1:
                 flash("Email already exists")
-                return redirect(url_for('usersignup'))
+                return redirect(url_for('usercreate'))
             else:
                 flash("Email verification failed")
-                return redirect(url_for('usersignup'))
+                return redirect(url_for('usercreate'))
     
-    return render_template("usersignup.html")
+    return render_template("usercreate.html")
 
 @app.route('/userotpverify/<serverdata>',methods=['GET','POST'])
 def userotpverify(serverdata):
@@ -599,7 +611,7 @@ def userotpresent(serverdata):
     except Exception as e:
         print(e)
         flash('Time out error')
-        return redirect(url_for('usersignup'))
+        return redirect(url_for('usercreate'))
     else:
         user_otp=genotp()
         user_data['user_otp']=user_otp
@@ -794,6 +806,16 @@ def pay_cart():
     try:
         # fetching all the cart items
         cart=session.get(session.get("user"),{})
+        # only use single_buy if explicitly coming from buy now route
+        cart_mode=""
+        if request.args.get('type')=="single":
+            cart=session.get('single_buy',{})
+            cart_mode="single"
+        else:
+            if 'single_buy' in session:
+                session.pop('single_buy')
+                session.modified=True
+                cart_mode="cart"
         if not cart:
             flash("Your cart is empty")
             return redirect(url_for("index"))
@@ -830,7 +852,7 @@ def pay_cart():
 
             })
             print("created an order: ",order)
-            return render_template("pay.html",order=order,cart_items=items_data,items_total=items_total,delivery=delivery,tax=tax,grand_total=grand_total)
+            return render_template("pay.html",order=order,cart_items=items_data,items_total=items_total,delivery=delivery,tax=tax,grand_total=grand_total,cart_mode=cart_mode)
     except Exception as e:
         print('could not process payment: ',e)
         flash("payment failed")
@@ -846,6 +868,7 @@ def success_cart():
         order_id=request.form['razorpay_order_id']
         signature=request.form['razorpay_signature']
         amount=float(request.form['grand_total'])
+        mode=request.form['mode']
         #verify payment signature details
         param_dict={
             'razorpay_payment_id':payment_id,
@@ -858,7 +881,13 @@ def success_cart():
             print(e)
             flash('Payment verification failed')
             return redirect(url_for('pay_cart'))
-        cart=session.get(session.get('user'),{})
+        if mode=='single':
+            cart=session.get('single_buy',{})
+        else:
+            if "single_buy" in session:
+                session.pop("single_buy")
+                session.modified=True
+            cart=session.get(session.get('user'),{})
         if not cart:
             flash('Your cart is empty')
             return redirect(url_for('pay_cart'))
@@ -894,6 +923,10 @@ def success_cart():
                 flash('Could not store order details')
                 return redirect(url_for('pay_cart'))
             #------- remove temp cart items
+            if mode=="single":
+                if "single_buy" in session:
+                    session.pop("single_buy")
+                    session.modified=True
             session[session.get('user')]={}
             flash('Payment successfull')
             return redirect(url_for('pay_cart'))
@@ -905,6 +938,254 @@ def success_cart():
         app.logger.exception(f'Error  verification failed:{e}')
         flash('Could not order.payment verification failed')
         return redirect(url_for('pay_cart'))
+
+@app.route("/myorders")
+def myorders():
+    if not session.get("user"):  
+        flash("Please login to view orders")
+        return redirect(url_for("userlogin"))
+    try:
+        cursor=mydb.cursor(buffered=True)
+        cursor.execute("select userid from userdata where user_email=%s",[session.get('user')])
+        user=cursor.fetchone()[0] 
+    except Exception as e:
+        app.logger.exception("user not found}")
+        flash("could not verify user")
+        return redirect(url_for("index"))
+    else:
+        if user:
+            cursor.execute("select orderid,razorpay_orderid,razorpay_payment,userid,total_amount,delivery,tax,grand_total,created_at from orders where userid=%s order by created_at desc",[user])
+            order_data=cursor.fetchall()
+            cursor.close()
+            return render_template("myorders.html",order_data=order_data)
+        else:
+            flash("user Not Found")
+            return redirect(url_for("index"))
+
+@app.route("/myorder_details/<ordid>")
+def myorder_details(ordid):
+    if not session.get("user"):  
+        flash("Please login to view orders")
+        return redirect(url_for("userlogin"))
+    try:
+        cursor=mydb.cursor(buffered=True)
+        cursor.execute("select userid from userdata where user_email=%s",[session.get('user')])
+        user=cursor.fetchone()[0] 
+    except Exception as e:
+        app.logger.exception("user not found}")
+        flash("could not verify user")
+        return redirect(url_for("index"))
+    else:
+        if user:
+            try:
+                cursor.execute("select orderid,razorpay_orderid,razorpay_payment,userid,total_amount,delivery,tax,grand_total,created_at from orders where userid=%s and orderid=%s",[user,ordid])
+                order_data=cursor.fetchone()
+                cursor.execute('select order_items_id, order_id,itemid,item_name,item_price,item_quantity,subtotal,item_category,item_filename from order_items where order_id=%s',[ordid])
+                order_details=cursor.fetchall()
+                cursor.close()
+                return render_template("order_details.html",order_data=order_data, order_details=order_details)
+            except Exception as e:
+                app.logger.exception("could not fetch item deatils")
+                flash("could not fetch item deatils")
+                return redirect(url_for("index"))
+        else:
+            flash("user Not Found")
+            return redirect(url_for("myorders"))
+
+@app.route("/get_invoice/<int:ord_id>")
+def get_invoice(ord_id):
+    if not session.get("user"):
+        flash("Please login to view orders")
+        return redirect(url_for("userlogin"))
+    try:
+        cursor=mydb.cursor(buffered=True)
+        cursor.execute("select userid from userdata where user_email=%s",[session.get('user')])
+        user=cursor.fetchone()[0] 
+    except Exception as e:
+        app.logger.exception("user not found}")
+        flash("could not verify user")
+        return redirect(url_for("index"))
+    else:
+        if user:
+            try:
+                cursor.execute("select orderid,razorpay_orderid,razorpay_payment,userid,total_amount,delivery,tax,grand_total,created_at from orders where userid=%s and orderid=%s",[user,ord_id])
+                order_data=cursor.fetchone()
+                cursor.execute('select order_items_id, order_id,itemid,item_name,item_price,item_quantity,subtotal,item_category,item_filename from order_items where order_id=%s',[ord_id])
+                order_details=cursor.fetchall()
+                cursor.close()
+                html=render_template("invoice.html",order_data=order_data,order_details=order_details)
+                # generating pdf
+                pdf=BytesIO()
+                pisa_status=pisa.CreatePDF(html,dest=pdf)
+                if pisa_status.err:
+                    return "Error in generating pdf"
+                response=make_response(pdf.getvalue())
+                response.headers['Content-Type']="application/pdf"
+                response.headers['Content-Disposition']=f"attachment; filename=invoice_{ord_id}.pdf"
+                return response
+               
+            except Exception as e:
+                app.logger.exception("could not fetch item deatils") 
+                flash("could not fetch item deatils")
+                return redirect(url_for("index"))
+        else:
+            flash("user Not Found")
+            return redirect(url_for("myorders"))
+
+@app.route("/buy_now",methods=['POST'])
+def buy_now():
+    if not session.get("user"):
+        flash("Please login to view orders")
+        return redirect(url_for("userlogin"))
+
+    try:
+        itemid=request.form["itemid"]
+
+        cursor=mydb.cursor(buffered=True)
+
+        cursor.execute('select bin_to_uuid(itemid),itemname,item_description,item_about,item_price,item_quantity,item_category,filename from items where itemid=uuid_to_bin(%s)',[itemid])
+
+        item_data=cursor.fetchone()
+
+        if not item_data:
+            flash("Item not found")
+            return redirect(url_for("index"))
+
+        session["single_buy"]={
+            itemid:[item_data[1],1,item_data[4],item_data[5],item_data[6],item_data[7]]
+        }
+
+        session.modified=True
+
+        flash("Item added to cart")
+
+        return redirect(url_for('pay_cart',type="single"))
+
+    except Exception as e:
+        print(e)
+        flash("Could not buy item")
+        return redirect(url_for("index"))
+
+@app.route('/desc_item/<itemid>')
+def desc_item(itemid):
+    try:
+        cursor=mydb.cursor(buffered=True)
+        cursor.execute('select bin_to_uuid(itemid),itemname,item_description,item_about,item_price,item_quantity,item_category,filename from items where itemid=uuid_to_bin(%s)',[itemid])
+        item_data=cursor.fetchone()
+        cursor.close()
+    except Exception as e:
+        print(e)
+        flash('Could not get item data')
+        return redirect(url_for('index'))
+    else:
+        return render_template('desc.html',item_data=item_data)
+
+@app.route("/addreview/<itemid>",methods=["GET","POST"])
+def addreview(itemid):
+
+    if not session.get("user"):
+        flash("please login to give review")
+        return redirect(url_for("userlogin"))
+
+    if request.method=="POST":
+
+        review_text=request.form["review_text"]
+        rating=request.form["rating"]
+
+        try:
+            cursor=mydb.cursor(buffered=True)
+            cursor.execute("select username from userdata where user_email=%s",[session.get("user")])
+            user_name=cursor.fetchone()
+            cursor.execute(
+                '''
+                insert into review_data
+                (review_text, rating, itemid, username)
+                values(%s, %s, uuid_to_bin(%s), %s)
+                ''',[review_text, rating, itemid, user_name[0]])
+            mydb.commit()
+            cursor.close()
+        except Exception as e:
+            print(e)
+            flash("could not add review")
+            return redirect(url_for('desc_item',itemid=itemid))
+        else:
+            flash("review added successfully")
+            return redirect(url_for('desc_item',itemid=itemid))
+    return render_template("addreview.html",itemid=itemid)
+
+@app.route('/usersearch',methods=['POST'])
+def usersearch():
+    sdata=request.form['q']
+    strg=['a-zA-Z0-9']
+    pattern=re.compile(f'^{strg}',re.IGNORECASE)
+    if pattern.match(sdata):
+        try:
+            cursor=mydb.cursor(buffered=True)
+            cursor.execute('select bin_to_uuid(itemid),itemname,item_description,item_about,item_price,item_quantity,item_category,filename from items where itemname like %s or item_description like %s or item_about like %s  or item_price like %s or item_category like %s',[sdata+'%',sdata+'%',sdata+'%',sdata+'%',sdata+'%'])
+            searchitemsdata=cursor.fetchall() 
+            cursor.close()
+        except Exception as e:
+            flash('could not get item details')
+            return redirect(url_for('index'))
+        else:
+            return render_template('dashboard.html',items_data=searchitemsdata)      
+    else:
+        flash('Invalid search data')
+        return redirect(url_for('index'))
+@app.route('/userforgot',methods=['GET','POST'])
+def userforgot():
+    if request.method=='POST':
+        useremail=request.form['email']
+        try:
+            cursor=mydb.cursor()
+            cursor.execute('select count(user_email) from userdata where user_email=%s',[useremail])
+            count_email=cursor.fetchone() #(0,) or (1,)
+            cursor.close()
+        except Exception as e:
+            print(e)
+            flash('Could verify email')
+            return redirect(url_for('userlogin'))
+        else:
+            if count_email[0]==1:
+                subject='Forgot password link for Ecom23 APP'
+                body=f"Use the given link for Ecom23 Forgotpassword {url_for('usernewpassword',data=endata(useremail),_external=True)}"
+                sendmail(to=useremail,subject=subject,body=body)
+                flash('Resetlink has been sent to given mail.')
+                return redirect(url_for('userforgot'))
+            elif count_email[0]==0:
+                flash('Email not found')
+                return redirect(url_for('userlogin'))
+            else:
+                flash('Could not send resetlink')
+    return render_template('userforgot.html')
+
+@app.route('/usernewpassword/<data>',methods=['GET','PUT'])
+def usernewpassword(data):
+    if request.method=='PUT':
+        try:
+            useremail=dndata(data)
+        except Exception as e:
+            print(e)
+            flash('could not find user')
+            return redirect(url_for('usernewppassword',data=data))
+        else:
+            print(request.get_json())
+            updated_password=request.get_json()['new_password']
+            try:
+                cursor=mydb.cursor(buffered=True)
+                hash_password=bcrypt.generate_password_hash(updated_password)
+                print(hash_password)
+                cursor.execute('update userdata set password=%s where user_email=%s',[hash_password,useremail])
+                mydb.commit()
+                cursor.close()
+            except Exception as e:
+                print(e)
+                flash('could not update the password')
+                return redirect(url_for('usernewppassword',data=data))
+            else:
+                flash('password updated successfully')
+                return jsonify({"message":"ok"})
+    return render_template('usernewpassword.html',data=data)
 
 
 

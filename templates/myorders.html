@@ -103,26 +103,26 @@
 
     <h4 style="font-weight:700; margin-bottom:18px;">Your Orders</h4>
 
-    {% if not myorders_data %}
+    {% if not order_data %}
       <div style="padding:40px; text-align:center; font-size:1.1rem; font-weight:600;">
         You haven't placed any orders yet.<br>
         <a href="{{ url_for('home') }}" style="color:#ffeb3b; text-decoration:underline;">Start Shopping</a>
       </div>
     {% else %}
 
-      {% for o in myorders_data %}
+      {% for o in order_data %}
       <div class="order-item">
 
         <div class="order-info">
           <div><strong>Order ID:</strong> {{ o[1] }}</div>
-          <div><strong>Date:</strong> {{ o[9] }}</div>
+          <div><strong>Date:</strong> {{ o[8] }}</div>
           <div><strong>Total:</strong> ₹{{ o[4] }}</div>
-          <div><strong>Status:</strong> <span class="order-status">{{ o[8] }}</span></div>
+          <div><strong>Status:</strong> <span class="order-status">Paid</span></div>
         </div>
 
         <div class="order-actions">
-          <a href="{{url_for('myorders_details',orderid=o[0])}}" class="btn-view">View Details</a>
-          <a href="{{url_for('get_invoice',ordid=o[0])}}" class="btn btn-outline-dark ms-2">Invoice</a>
+          <a href="{{url_for('myorder_details',ordid=o[0])}}" class="btn-view">View Details</a>
+          <a href="{{url_for('get_invoice',ord_id=o[0])}}" class="btn btn-outline-dark ms-2">Invoice</a>
         </div>
 
       </div>

@@ -1,120 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View All</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>{{ items_data[1] }} | BUYROUTE</title>
 
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
 
-    <style>
-        body {
-            background: linear-gradient(#f7eaea, #a7a4a4);
-            background-attachment: fixed;
-        }
+  <style>               
+    :root{
+      --accent: #ffe082;
+      --muted: #6b7280;
+    }
 
-        .card {
-            border-radius: 12px;
-            overflow: hidden;
-            transition: 0.3s ease-in-out;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
-        }
+    body{
+      min-height:100vh;
+      margin:0;
+      font-family:"Poppins",system-ui;
+      background-image:url("https://img.freepik.com/free-photo/futuristic-metaverse-empty-room-product-display-presentation-abstract-technology-scifi-with-neon-light-3d-background_56104-2314.jpg");
+      background-size:cover;
+      background-repeat:no-repeat;
+      background-attachment:fixed;
+      padding:28px;
+    }
 
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0px 8px 20px rgba(0,0,0,0.3);
-        }
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:20px;
+    }
 
-        .card-img-top {
-            height: 220px;
-            object-fit: cover;
-        }
+    .logo{
+      width:56px;
+      height:56px;
+    }
 
-        .card-body h5 {
-            font-weight: 600;
-        }
+    .page-card{
+      max-width:1000px;
+      margin:auto;
+      background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(250,250,250,0.94));
+      border-radius:12px;
+      padding:25px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.25);
+      border:1px solid rgba(0,0,0,0.06);
+    }
 
-        .quantity {
-            margin: 7px 0;
-        }
+    .product-container{
+      display:flex;
+      gap:30px;
+      flex-wrap:wrap;
+    }
 
-        .buy-btn, .cart-btn {
-            width: 48%;
-        }
+    .product-img{
+      width:350px;
+      border-radius:14px;
+      border:1px solid #ddd;
+      box-shadow:0 4px 10px rgba(0,0,0,0.10);
+    }
 
-        /* Responsive fixes */
-        @media (max-width: 768px) {
-            .card-img-top {
-                height: 180px;
-            }
-        }
+    .btn-buy{
+      background:linear-gradient(90deg,#ffd54a,#ffb74d);
+      border:none;
+      padding:10px 20px;
+      font-weight:600;
+      border-radius:6px;
+    }
 
-        @media (max-width: 576px) {
-            .buy-btn, .cart-btn {
-                width: 100%;
-                margin-bottom: 5px;
-            }
-        }
-    </style>
+    .btn-review{
+      background:white;
+      border:2px solid #ffb74d;
+      padding:8px 18px;
+      font-weight:600;
+      border-radius:6px;
+      transition:0.2s;
+    }
+
+    .btn-review:hover{
+      background:#ffe082;
+    }
+  </style>
 </head>
 
 <body>
 
-    <!-- FLASH MESSAGES -->
-    {% with messages = get_flashed_messages() %}
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <a href="{{ url_for('index') }}"><img src="/static/BUYROUTE.png" class="logo"></a>
+    <h3 style="color:white;font-weight:700;">Item Details</h3>
+    <div></div>
+  </div>
+
+  <!-- FLASH MESSAGES -->
+  {% with messages = get_flashed_messages() %}
     {% if messages %}
-    {% for message in messages %}
-    <center style="color: white; font-weight: bold; margin-top:10px;">{{ message }}</center>
-    {% endfor %}
+      <div class="mb-3">
+        {% for msg in messages %}
+          <div class="alert alert-info">{{ msg }}</div>
+        {% endfor %}
+      </div>
     {% endif %}
-    {% endwith %}
+  {% endwith %}
 
-    <section class="container py-5">
-        <div class="row g-4">
+  <div class="page-card">
 
-            {% for i in items_data %}
-            <div class="col-lg-3 col-md-4 col-sm-6 col-12">
-                <div class="card">
+    <div class="product-container">
 
-                    <!-- Product Image -->
-                    <a href="#">
-                        <img src="/static/uploads/{{i[7]}}" alt="Product Image" class="card-img-top">
-                    </a>
+      <!-- PRODUCT IMAGE -->
+      <div>
+        <img src="/static/uploads/{{ items_data[7] }}" class="product-img">
+      </div>
 
-                    <div class="card-body">
-                        <a href="#" style="text-decoration:none; color:black;">
-                            <h5>Name: {{i[1]}}</h5>
-                        </a>
-                        <p class="text-muted m-0">ID:{{i[0]}} </p>
-                        <p class="m-0"><strong>Price:</strong> ₹{{i[4]}}</p>
-                        <p class="m-0"><strong>Stock:{{i[5]}}</strong> </p>
-                        <p class="m-0"><strong>Category:{{i[6]}}</strong> </p>
-                        <form method="post" action="#">
-                            <input type="hidden" name="itemid" value="{{i[0]}}">
-                            <label class="mt-2"><strong>Select Quantity</strong></label>
-                            <select name="qyt" class="form-select quantity">
-                                {% for q in range(1, 11) %}
-                                <option value="{{ q }}">{{ q }}</option>
-                                {% endfor %}
-                            </select>
+      <!-- PRODUCT DETAILS -->
+      <div style="flex:1;">
+        
+        <h2 style="font-weight:800; margin-bottom:15px;">
+          {{items_data[1] }}
+        </h2>
 
-                            <div class="d-flex justify-content-between mt-2">
-                                <button class="btn btn-success buy-btn">Buy Now</button>
-                                <a href="{{url_for('addcart',itemid=i[0])}}" class="btn btn-danger cart-btn">Add Cart</a>
-                            </div>
-                        </form>
+        <p style="font-size:1.1rem; color:#333;">
+          {{ items_data[2] }}
+        </p>
 
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
+        <h4 style="margin-top:20px;">
+          <strong>Price:</strong> ₹{{ items_data[4] }}
+        </h4>
 
+        <p><strong>Category:</strong> {{ items_data[6] }}</p>
+        <p><strong>Available Stock:</strong> {{ items_data[5] }}</p>
+        
+
+        <br>
+
+        <!-- BUTTONS SECTION -->
+        <div style="margin-top:20px;">
+          <a href="{{ url_for('index') }}" class="btn btn-secondary me-2">Back</a>
+          <form method="post" action="{{url_for('buy_now')}}">
+                <input type="hidden" name="itemid" value="{{items_data[0]}}">
+            <button class="btn-buy me-2">Buy Now</button>
+          </form>
+          {% if session.get('user') %}
+          <a href="{{url_for('addreview',itemid=items_data[0])}}" 
+             class="btn-review me-2">
+             Add Review
+          </a>
+          {% endif %}
+          <a href="#" 
+             class="btn-review">
+             Read Reviews
+          </a>
         </div>
-    </section>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+      </div>
+
+    </div>
+
+  </div>
+
 </body>
-
 </html>

@@ -87,7 +87,7 @@
 
   <!-- TOP BAR -->
   <div class="topbar">
-    <a href="{{ url_for('home') }}"><img src="/static/BUYROUTE.png" class="logo"></a>
+    <a href="{{ url_for('index') }}"><img src="/static/BUYROUTE.png" class="logo"></a>
     <h3 style="color:white;font-weight:700;">Item Details</h3>
     <div></div>
   </div>
@@ -135,7 +135,7 @@
 
         <!-- BUTTONS SECTION -->
         <div style="margin-top:20px;">
-          <a href="{{ url_for('home') }}" class="btn btn-secondary me-2">Back</a>
+          <a href="{{ url_for('index') }}" class="btn btn-secondary me-2">Back</a>
           <form method="post" action="{{url_for('buy_now')}}">
                 <input type="hidden" name="itemid" value="{{item_data[0]}}">
             <button class="btn-buy me-2">Buy Now</button>
@@ -146,7 +146,7 @@
              Add Review
           </a>
           {% endif %}
-          <a href="{{url_for('reviewresult',itemid=item_data[0])}}" 
+          <a href="#" 
              class="btn-review">
              Read Reviews
           </a>

@@ -164,52 +164,47 @@
       <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
         <li class="nav-item"><a class="nav-link" href="#">Home</a></li>
         <li class="nav-item"><a class="nav-link" href="#">Contact Us</a></li>
-
-        {% if session.get("user")%}
+        {% if session.get('user') %}
         <li class="nav-item"><a class="nav-link" href="{{url_for('viewcart')}}">View Cart</a></li>
-        <li class="nav-item"><a class="nav-link" href="#">My Orders</a></li>
-        {%endif%}
+        <li class="nav-item"><a class="nav-link" href="{{url_for('myorders')}}">My Orders</a></li>
+        {% endif %}
 
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Category</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{{url_for("category",ctype="Home Appliances")}}">Home Appliances</a></li>
-            <li><a class="dropdown-item" href="{{url_for("category",ctype="Electronics")}}">Electronics</a></li>
-            <li><a class="dropdown-item" href="{{url_for("category",ctype="Fashion")}}">Fashion</a></li>
-            <li><a class="dropdown-item" href="{{url_for("category",ctype="Grocery")}}">Grocery</a></li>
-            <li><a class="dropdown-item" href="{{url_for("category",ctype="Sports")}}">Sports</a></li>
-            <li><a class="dropdown-item" href="{{url_for("category",ctype="Toys")}}">Toys</a></li>
+            <li><a class="dropdown-item" href="{{url_for('category',ctype='Home_Appliances')}}">Home Appliances</a></li>
+            <li><a class="dropdown-item" href="{{url_for('category',ctype='Electronics')}}">Electronics</a></li>
+            <li><a class="dropdown-item" href="{{url_for('category',ctype='Fashion')}}">Fashion</a></li>
+            <li><a class="dropdown-item" href="{{url_for('category',ctype='Grocery')}}">Grocery</a></li>
+            <li><a class="dropdown-item" href="{{url_for('category',ctype='Sports')}}">Sports</a></li>
+            <li><a class="dropdown-item" href="{{url_for('category',ctype='Toys')}}">Toys</a></li>
           </ul>
         </li>
 
-       {% if session.get("user")%}
-        <li class="nav-item"><a class="nav-link" href="#">Logout</a></li>
-      {%endif%}
-      
-
-        
-
-      {% if session.get("user")%} 
+       {% if session.get('user') %}
+        <li class="nav-item"><a class="nav-link" href="{{url_for('userlogout')}}">Logout</a></li>
+        {% endif %}
+        {% if not session.get('user') %}
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Sign Up</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{{ url_for('admincreate') }}">Admin Signup</a></li>
-            <li><a class="dropdown-item" href="{{url_for("usersignup")}}">User Signup</a></li>
+            <li><a class="dropdown-item" href="{{url_for('admincreate')}}">Admin Signup</a></li>
+            <li><a class="dropdown-item" href="{{url_for('usercreate')}}">User Signup</a></li>
           </ul>
         </li>
 
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Login</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{{url_for("adminlogin")}}">Admin Login</a></li>
-            <li><a class="dropdown-item" href="{{url_for("userlogin")}}">User Login</a></li>
+            <li><a class="dropdown-item" href="{{url_for('adminlogin')}}">Admin Login</a></li>
+            <li><a class="dropdown-item" href="{{url_for('userlogin')}}">User Login</a></li>
           </ul>
         </li>
-        {%endif%}
+      {% endif %}
       </ul>
 
       <!-- SEARCH BOX -->
-      <form class="d-flex ms-3" method="POST" action="#" >
+      <form class="d-flex ms-3" method="POST" action="{{url_for('usersearch')}}" >
         <input class="form-control me-2" type="search" name="q" placeholder="Search products..." required>
         <button class="btn btn-primary" type="submit">
           <i class="fa-solid fa-magnifying-glass"></i>
@@ -230,7 +225,6 @@
       {% endfor %}
     {% endif %}
   {% endwith %}
-
       <h1>Welcome to BUYROUTE</h1>
       <h3>Shop Smart. Live Better.</h3>
     </div>
@@ -241,20 +235,19 @@
   <section class="py-5">   
     <div class="container">    
       <div class="row g-4">
-      {% if allitems_data %}
-      {% for i in allitems_data %}
-      
+        {% if allitems_data %}
+        {% for i in allitems_data %}
         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
           <div class="card">
-            <a href="#">
-              <img src="/static/uploads/{{i[7]}}" class="card-img-top" alt="#">
+            <a href="{{url_for('desc_item',itemid=i[0])}}">
+              <img src="/static/uploads/{{i[7]}}" class="card-img-top" alt="{{i[7]}}">
             </a>
             <div class="card-body">
               <h6></h6>
-              <h5 class="card-title">{{i[7][:12]}}</h5>
-              <p><span>{{i[4]}}/-</span></p>
+              <h5 class="card-title">{{i[1][0:10]}}...</h5>
+              <p><span>₹{{i[4]}}</span></p>
               <p><span>Stock:{{i[5]}}</span></p>
-              <form method="post" action="#">
+              <form method="post" action="{{url_for('buy_now')}}">
                 <input type="hidden" name="itemid" value="{{i[0]}}">
                 <select name="qyt" class="form-select mb-2">
                   {% for q in range(1,11) %}
@@ -263,16 +256,14 @@
                 </select>
                 <button class="btn btn-success mb-2">Buy Now</button>
               </form>
-              <a href="{{url_for("addcart",itemid=i[0])}}"class="btn btn-warning">Add to Cart</a>
+              <a href="{{url_for('addcart',itemid=i[0])}}"class="btn btn-warning">Add to Cart</a>
             </div>
           </div>
         </div>
-       {% endfor%}
-       {%else %} 
-      
+      {% endfor %}
+      {% else %}
       <p>No products </p>
-      {% endif %}
-      
+      {% endif %} 
       </div>
      
     </div>

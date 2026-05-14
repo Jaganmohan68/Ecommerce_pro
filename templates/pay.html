@@ -47,6 +47,7 @@
                     <input type="hidden" name="razorpay_order_id" value="${response.razorpay_order_id}">
                     <input type="hidden" name="razorpay_signature" value="${response.razorpay_signature}">
                     <input type="hidden" name="grand_total" value="{{ grand_total }}">
+                    <input type="hidden" name="mode" value="{{ cart_mode }}">
                 `;
 
                 document.body.appendChild(form);
