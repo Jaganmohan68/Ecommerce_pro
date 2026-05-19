@@ -41,7 +41,7 @@ def index():
         cursor=mydb.cursor(buffered=True)
         cursor.execute("select bin_to_uuid(itemid), itemname, item_description, item_about, item_price, item_quantity, item_category, filename from items ")
         allitems_data=cursor.fetchall()
-        print(allitems_data)
+        # print(allitems_data)
         cursor.close()
     except Exception as e:
         print(e)
@@ -69,7 +69,7 @@ def admincreate():
         
         try:
             cursor=mydb.cursor(buffered=True)
-            print("admincreate")
+            # print("admincreate")
             cursor.execute("select count(*) from admindata where admin_email=%s",[admin_useremail])
             email_count=cursor.fetchone()[0]
             cursor.close()
@@ -107,12 +107,12 @@ def adminotpverify(serverdata):
             return redirect(url_for('admincreate'))
         else:
             if str(admin_data['admin_otp'])==str(userotp):
-                print("anything")
+                # print("anything")
                 try:
                     hash_password=bcrypt.generate_password_hash(admin_data['admin_userpassword'])
-                    print(hash_password)
+                    # print(hash_password)
                     cursor=mydb.cursor(buffered=True)
-                    print("Nothing")
+                    # print("Nothing")
                     cursor.execute('insert into admindata(adminid,admin_username,admin_email,admin_address,admin_agree,admin_password) values(uuid_to_bin(uuid()),%s,%s,%s,%s,%s)',[admin_data['admin_username'],admin_data['admin_useremail'],admin_data['admin_useraddress'],admin_data['admin_useragree'],hash_password])
                     mydb.commit()
                     cursor.close()   
@@ -212,16 +212,16 @@ def additem():
             item_category=request.form["category"]
             item_filedata=request.files["file"]
             item_filename=item_filedata.filename
-            print(item_filename)
+            # print(item_filename)
 
             if item_filedata and item_filename:
                 if not allowed_file(item_filename):
                     flash("file type not allowed: png, jpeg,jpg,webp,gif")
                     return redirect(url_for("additem"))
                 orig_secure=secure_filename(item_filename)
-                print(orig_secure)
+                # print(orig_secure)
                 ext=os.path.splitext(orig_secure)[1]
-                print(ext)
+                # print(ext)
                 filename=genotp()+ext 
                 save_path=os.path.join(app.config["UPLOAD_FOLDER"], filename)
                 try:
@@ -267,7 +267,7 @@ def viewall_items():
             if admin_id:
                 cursor.execute("select bin_to_uuid(itemid), itemname, item_description, item_about, item_price, item_quantity, item_category, filename from items where added_by=%s", [admin_id])
                 allitems_data=cursor.fetchall()
-                print(allitems_data)
+                # print(allitems_data)
                 cursor.close()
             else:
                 flash("Could not verify admin")
@@ -388,7 +388,7 @@ def updateitem(itemid):
             updateditem_quantity=request.form['quantity']
             updateditem_category=request.form['category']
             updateditem_filedata=request.files['file']
-            print(updateditem_filedata)
+            # print(updateditem_filedata)
             updateditem_filename=updateditem_filedata.filename
             new_file_path=None
             if updateditem_filedata and updateditem_filename:
@@ -585,7 +585,7 @@ def userotpverify(serverdata):
             return redirect(url_for('usercreate'))
         else:
             if str(user_data['user_otp'])==str(userotp):
-                print("hey jagan")
+                # print("hey jagan")
                 try:
                     hash_password=bcrypt.generate_password_hash(user_data['user_password'])
                     cursor=mydb.cursor(buffered=True)
@@ -644,7 +644,7 @@ def userlogin():
                         stored_password=cursor.fetchone() #('fgjvjfj',)
                         if stored_password:
                             if bcrypt.check_password_hash(stored_password[0],login_password):
-                                print(session)
+                                # print(session)
                                 session['user']=login_email
                                 print(session,'user')
                                 if not session.get(login_email):
@@ -676,7 +676,7 @@ def userlogin():
 #     else:
 #         flash("Please Login to Access")
 #         return redirect(url_for("userlogin"))
- 
+
 @app.route('/addcart/<itemid>',methods=['GET'])
 def addcart(itemid):
     if not session.get('user'):
@@ -912,7 +912,7 @@ def success_cart():
                     item_quantity=int(j[1])
                     item_price=float(j[2])
                     category=j[4] if len(i)>3 else None
-                    print(category,'hi')
+                    # print(category,'hi')
                     img=j[5] if len(i)>4 else None
                     sub_total=item_price*item_quantity
                     cursor.execute(insert_item,[order_table_id,itemid,item_name,item_price,item_quantity,sub_total,category,img])
@@ -1036,6 +1036,7 @@ def get_invoice(ord_id):
 def buy_now():
     if not session.get("user"):
         flash("Please login to view orders")
+        # print("Hey")
         return redirect(url_for("userlogin"))
 
     try:
